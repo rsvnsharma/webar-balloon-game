@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebAR Balloon Game</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
+  <style>
+    .instruction {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 4px black;
+    }
+    .score {
+      position: absolute;
+      top: 50px;
+      width: 100%;
+      text-align: center;
+      color: yellow;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body style="margin: 0; overflow: hidden;">
+  <div class="instruction">Tap only the <span id="targetColor">red</span> balloons!</div>
+  <div class="score">Score: <span id="score">0</span></div>
+
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-marker preset="hiro">
+      <a-entity id="balloon-container"></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    let targetColor = 'red';
+    let score = 0;
+
+    function getRandomColor() {
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function spawnBalloon() {
+      const color = getRandomColor();
+      const balloon = document.createElement('a-sphere');
+      balloon.setAttribute('color', color);
+      balloon.setAttribute('radius', '0.2');
+      balloon.setAttribute('position', `${(Math.random() - 0.5) * 2} ${(Math.random() * 2) + 0.5} ${(Math.random() - 0.5) * 2}`);
+
+      balloon.addEventListener('click', () => {
+        if (color === targetColor) {
+          score++;
+          document.getElementById('score').textContent = score;
+        }
+        balloon.parentNode.removeChild(balloon);
+      });
+
+      document.getElementById('balloon-container').appendChild(balloon);
+    }
+
+    // Announce target color using TTS
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'en-US';
+      window.speechSynthesis.speak(msg);
+    }
+
+    setInterval(spawnBalloon, 1500);
+    speak(`Tap only the ${targetColor} balloons!`);
+  </script>
+</body>
+</html>
