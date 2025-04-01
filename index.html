@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>WebAR Balloon Game</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
+  <script src="="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
   <style>
     .instruction {
       position: absolute;
@@ -31,7 +31,7 @@
   <div class="score">Score: <span id="score">0</span></div>
 
   <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-    <a-marker preset="hiro">
+    <a-marker preset="hiro" emitevents="true" id="marker">
       <a-entity id="balloon-container"></a-entity>
     </a-marker>
     <a-entity camera></a-entity>
@@ -64,7 +64,6 @@
       document.getElementById('balloon-container').appendChild(balloon);
     }
 
-    // Announce target color using TTS
     function speak(text) {
       const msg = new SpeechSynthesisUtterance(text);
       msg.lang = 'en-US';
@@ -73,6 +72,17 @@
 
     setInterval(spawnBalloon, 1500);
     speak(`Tap only the ${targetColor} balloons!`);
+
+    // Marker detection logging
+    const marker = document.querySelector("#marker");
+
+    marker.addEventListener("markerFound", () => {
+      console.log("Marker found!");
+    });
+
+    marker.addEventListener("markerLost", () => {
+      console.log("Marker lost!");
+    });
   </script>
 </body>
 </html>
