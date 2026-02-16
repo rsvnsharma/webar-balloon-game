@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MindBridge — Emotional Wellness Companion</title>
+  <style>
+    :root {
+      --primary: #5b7fa5;
+      --primary-light: #e8eff7;
+      --primary-dark: #3d5a80;
+      --accent: #ee6c4d;
+      --bg: #f7f9fc;
+      --surface: #ffffff;
+      --text: #2b2d42;
+      --text-light: #6c757d;
+      --bot-bubble: #e8eff7;
+      --user-bubble: #5b7fa5;
+      --crisis-bg: #fff3cd;
+      --crisis-border: #ffc107;
+      --coping-bg: #f0f7f0;
+      --coping-border: #b2dfb2;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --radius: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--surface);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e0e6ed;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .bot-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: white; flex-shrink: 0;
+    }
+    .header-info h1 { font-size: 16px; font-weight: 600; }
+    .header-info p { font-size: 12px; color: var(--text-light); }
+    .header-actions { display: flex; gap: 8px; }
+    .header-btn {
+      background: none; border: 1px solid #e0e6ed; border-radius: 8px;
+      padding: 6px 12px; font-size: 13px; color: var(--text-light);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .header-btn:hover { background: var(--primary-light); color: var(--primary-dark); border-color: var(--primary); }
+
+    /* ===== SETUP SCREEN ===== */
+    .setup-screen {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 20px; overflow-y: auto;
+    }
+    .setup-card {
+      background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 40px 32px; max-width: 460px; width: 100%; text-align: center;
+    }
+    .setup-card .logo {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; color: white; margin: 0 auto 20px;
+    }
+    .setup-card h2 { font-size: 22px; margin-bottom: 8px; }
+    .setup-card .subtitle { font-size: 14px; color: var(--text-light); margin-bottom: 24px; line-height: 1.5; }
+    .setup-card label { display: block; text-align: left; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .setup-card input, .setup-card select {
+      width: 100%; padding: 10px 14px; border: 1px solid #d0d7de; border-radius: 10px;
+      font-size: 14px; margin-bottom: 16px; transition: border-color 0.2s; background: var(--bg);
+    }
+    .setup-card input:focus, .setup-card select:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(91,127,165,0.15);
+    }
+    .setup-card .note { font-size: 12px; color: var(--text-light); margin-bottom: 20px; text-align: left; line-height: 1.4; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; border: none; border-radius: 10px; padding: 12px 32px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s; width: 100%;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(91,127,165,0.3); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .error-text { color: #dc3545; font-size: 13px; margin-bottom: 12px; display: none; text-align: left; }
+
+    /* ===== CHAT AREA ===== */
+    .chat-container { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+    .chat-container.active { display: flex; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth;
+    }
+
+    /* ===== MESSAGES ===== */
+    .message {
+      max-width: 80%; padding: 12px 16px; border-radius: var(--radius);
+      line-height: 1.55; font-size: 14.5px; animation: fadeIn 0.3s ease;
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .message.bot { align-self: flex-start; background: var(--bot-bubble); border-bottom-left-radius: 4px; }
+    .message.user { align-self: flex-end; background: var(--user-bubble); color: white; border-bottom-right-radius: 4px; }
+    .message.crisis {
+      align-self: flex-start; background: var(--crisis-bg); border: 1px solid var(--crisis-border);
+      color: #664d03; border-bottom-left-radius: 4px; max-width: 88%;
+    }
+    .message.crisis strong { color: #b45309; }
+    .message.crisis a { color: #0d6efd; font-weight: 600; }
+    .message.system {
+      align-self: center; background: transparent; color: var(--text-light);
+      font-size: 13px; text-align: center; max-width: 90%;
+    }
+
+    /* ===== EMOTION INDICATOR ===== */
+    .emotion-badge {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 12px;
+      margin-top: 6px; background: rgba(91,127,165,0.1); color: var(--primary-dark);
+    }
+
+    /* ===== TYPING INDICATOR ===== */
+    .typing-indicator {
+      align-self: flex-start; background: var(--bot-bubble); padding: 12px 20px;
+      border-radius: var(--radius); border-bottom-left-radius: 4px; display: none;
+    }
+    .typing-indicator.active { display: flex; gap: 4px; align-items: center; }
+    .typing-dot {
+      width: 8px; height: 8px; background: var(--primary); border-radius: 50%;
+      opacity: 0.4; animation: typingBounce 1.4s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ===== INPUT AREA ===== */
+    .chat-input-area {
+      background: var(--surface); border-top: 1px solid #e0e6ed;
+      padding: 12px 16px; display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+    }
+    .chat-input-area textarea {
+      flex: 1; resize: none; border: 1px solid #d0d7de; border-radius: 12px;
+      padding: 10px 14px; font-size: 14.5px; font-family: inherit;
+      line-height: 1.4; max-height: 120px; min-height: 44px; background: var(--bg);
+      transition: border-color 0.2s;
+    }
+    .chat-input-area textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(91,127,165,0.12); }
+    .send-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: none;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform 0.15s, opacity 0.2s;
+    }
+    .send-btn:hover { transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ===== DISCLAIMER ===== */
+    .disclaimer {
+      background: #fff8e1; border-top: 1px solid #ffe082;
+      padding: 8px 16px; font-size: 11.5px; color: #7b6b2e;
+      text-align: center; flex-shrink: 0; line-height: 1.4;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      .header { padding: 10px 14px; }
+      .message { max-width: 88%; font-size: 14px; }
+      .setup-card { padding: 28px 20px; }
+      .header-actions .label-text { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="bot-avatar" aria-hidden="true">&#x1f9e0;</div>
+      <div class="header-info">
+        <h1>MindBridge</h1>
+        <p>Emotional Wellness Companion</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" id="btnNewChat" title="Start a new conversation">New Chat</button>
+      <button class="header-btn" id="btnSettings" title="Change settings">Settings</button>
+    </div>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div class="setup-screen" id="setupScreen">
+    <div class="setup-card">
+      <div class="logo" aria-hidden="true">&#x1f9e0;</div>
+      <h2>Welcome to MindBridge</h2>
+      <p class="subtitle">A safe, non-judgmental space for you to express your feelings. I'm here to listen, not to fix — because the answers you need are already within you.</p>
+
+      <label for="langSelect">Preferred Language</label>
+      <select id="langSelect">
+        <option value="auto">Auto-detect (respond in my language)</option>
+        <option value="en">English</option>
+        <option value="hi">Hindi &#x28;&#x939;&#x93F;&#x928;&#x94D;&#x926;&#x940;&#x29;</option>
+        <option value="bn">Bengali &#x28;&#x9AC;&#x9BE;&#x982;&#x9B2;&#x9BE;&#x29;</option>
+        <option value="te">Telugu &#x28;&#xC24;&#xC46;&#xC32;&#xC41;&#xC17;&#xC41;&#x29;</option>
+        <option value="ta">Tamil &#x28;&#xBA4;&#xBAE;&#xBBF;&#xBB4;&#xBCD;&#x29;</option>
+        <option value="mr">Marathi &#x28;&#x92E;&#x930;&#x93E;&#x920;&#x940;&#x29;</option>
+        <option value="gu">Gujarati &#x28;&#xA97;&#xAC1;&#xA9C;&#xAB0;&#xABE;&#xAA4;&#xAC0;&#x29;</option>
+        <option value="kn">Kannada &#x28;&#xC95;&#xCA8;&#xCCD;&#xCA8;&#xCA1;&#x29;</option>
+        <option value="ml">Malayalam &#x28;&#xD2E;&#xD32;&#xD2F;&#xD3E;&#xD33;&#xD02;&#x29;</option>
+        <option value="pa">Punjabi &#x28;&#xA2A;&#xA70;&#xA1C;&#xA3E;&#xA2C;&#xA40;&#x29;</option>
+        <option value="or">Odia &#x28;&#xB13;&#xB21;&#xB3C;&#xB3F;&#xB06;&#x29;</option>
+        <option value="ur">Urdu &#x28;&#x627;&#x631;&#x62F;&#x648;&#x29;</option>
+        <option value="es">Spanish &#x28;Espa&#xF1;ol&#x29;</option>
+        <option value="fr">French &#x28;Fran&#xE7;ais&#x29;</option>
+        <option value="de">German &#x28;Deutsch&#x29;</option>
+        <option value="ar">Arabic &#x28;&#x627;&#x644;&#x639;&#x631;&#x628;&#x64A;&#x629;&#x29;</option>
+        <option value="zh">Chinese &#x28;&#x4E2D;&#x6587;&#x29;</option>
+        <option value="ja">Japanese &#x28;&#x65E5;&#x672C;&#x8A9E;&#x29;</option>
+        <option value="ko">Korean &#x28;&#xD55C;&#xAD6D;&#xC5B4;&#x29;</option>
+      </select>
+
+      <label for="nameInput">Your Name (optional)</label>
+      <input type="text" id="nameInput" placeholder="What should I call you?" />
+
+      <p class="error-text" id="errorText"></p>
+      <button class="btn-primary" id="btnStart">Begin Conversation</button>
+    </div>
+  </div>
+
+  <!-- CHAT CONTAINER -->
+  <div class="chat-container" id="chatContainer">
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+    <div class="chat-input-area">
+      <textarea id="userInput" placeholder="Share what's on your mind..." rows="1"></textarea>
+      <button class="send-btn" id="btnSend" title="Send" aria-label="Send">&#9654;</button>
+    </div>
+    <div class="disclaimer">
+      This is not a substitute for professional therapy. If you are in crisis, please call <strong>TeleManas: 14416</strong> or <strong>iCall: 9152987821</strong>.
+    </div>
+  </div>
+
+  <script>
+    // ============================
+    //  STATE
+    // ============================
+    const API_BASE = '/api/chat';
+    let sessionId = null;
+    let isWaiting = false;
+
+    // ============================
+    //  DOM
+    // ============================
+    const $ = id => document.getElementById(id);
+    const setupScreen    = $('setupScreen');
+    const chatContainer  = $('chatContainer');
+    const chatMessages   = $('chatMessages');
+    const typingIndicator = $('typingIndicator');
+    const userInput      = $('userInput');
+    const btnSend        = $('btnSend');
+    const btnStart       = $('btnStart');
+    const btnNewChat     = $('btnNewChat');
+    const btnSettings    = $('btnSettings');
+    const langSelect     = $('langSelect');
+    const nameInput      = $('nameInput');
+    const errorText      = $('errorText');
+
+    // ============================
+    //  CRISIS PATTERNS (client-side backup)
+    // ============================
+    const CRISIS_PATTERNS = [
+      /\b(kill\s*(my)?self|suicide|suicidal|end\s*(my)?\s*life|want\s*to\s*die|wanna\s*die|don'?t\s*want\s*to\s*live|no\s*reason\s*to\s*live|better\s*off\s*dead)\b/i,
+      /\b(self[- ]?harm|cut(ting)?\s*(my)?self|hurt(ing)?\s*(my)?self|overdose|hang\s*(my)?self|slit\s*(my)?\s*wrist)\b/i,
+      /\b(no\s*hope|hopeless|can'?t\s*go\s*on|can'?t\s*take\s*(it|this)\s*(any\s*more|anymore)|goodbye\s*forever|final\s*goodbye|nothing\s*matters\s*anymore)\b/i,
+      /(\u0916\u0941\u0926\u0915\u0941\u0936\u0940|\u0906\u0924\u094d\u092e\u0939\u0924\u094d\u092f\u093e|\u092e\u0930\u0928\u093e\s*\u091a\u093e\u0939)/i,
+      /(\u0986\u09a4\u09cd\u09ae\u09b9\u09a4\u09cd\u09af\u09be|\u09ae\u09b0\u09a4\u09c7\s*\u099a\u09be\u0987)/i,
+    ];
+
+    function detectCrisisLocal(text) {
+      return CRISIS_PATTERNS.some(p => p.test(text));
+    }
+
+    function getCrisisHTML() {
+      return `I can sense you're going through an incredibly difficult time. Your pain is real, and it matters deeply. Please know you don't have to face this alone.
+
+Please reach out to someone who can help right now:
+
+<strong>TeleManas Helpline: 14416</strong> (toll-free, 24/7, Govt. of India)
+<strong>iCall: 9152987821</strong>
+<strong>Vandrevala Foundation: 1860-2662-345</strong>
+<strong>AASRA: 9820466726</strong>
+
+International:
+<strong>Crisis Text Line:</strong> Text HOME to 741741
+<a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank" rel="noopener">International Crisis Centres</a>
+
+I'm still here with you.`;
+    }
+
+    // ============================
+    //  UI HELPERS
+    // ============================
+    function addMessage(text, type = 'bot', emotion = null) {
+      const div = document.createElement('div');
+      div.className = `message ${type}`;
+
+      if (type === 'crisis') {
+        div.innerHTML = text;
+      } else {
+        div.textContent = text;
+      }
+
+      if (emotion && type === 'bot') {
+        const badge = document.createElement('div');
+        badge.className = 'emotion-badge';
+        badge.textContent = emotion;
+        div.appendChild(badge);
+      }
+
+      chatMessages.appendChild(div);
+      scrollToBottom();
+      return div;
+    }
+
+    function scrollToBottom() {
+      requestAnimationFrame(() => { chatMessages.scrollTop = chatMessages.scrollHeight; });
+    }
+
+    function showTyping()  { typingIndicator.classList.add('active'); scrollToBottom(); }
+    function hideTyping()  { typingIndicator.classList.remove('active'); }
+
+    function setInputEnabled(enabled) {
+      isWaiting = !enabled;
+      userInput.disabled = !enabled;
+      btnSend.disabled = !enabled;
+    }
+
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorText.style.display = 'block';
+    }
+
+    function hideError() {
+      errorText.style.display = 'none';
+    }
+
+    // Auto-resize textarea
+    userInput.addEventListener('input', () => {
+      userInput.style.height = 'auto';
+      userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+    });
+
+    // ============================
+    //  API CALLS
+    // ============================
+    async function createSession(userName, preferredLanguage) {
+      const res = await fetch(`${API_BASE}/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName,
+          preferredLanguage,
+          userAgent: navigator.userAgent
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.details || err.error || `Server error (${res.status})`);
+      }
+      return res.json();
+    }
+
+    async function sendMessageAPI(sessionId, message) {
+      const res = await fetch(`${API_BASE}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, message })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.details || err.error || `Server error (${res.status})`);
+      }
+      return res.json();
+    }
+
+    // ============================
+    //  CORE: SEND MESSAGE
+    // ============================
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text || isWaiting) return;
+
+      addMessage(text, 'user');
+      userInput.value = '';
+      userInput.style.height = 'auto';
+
+      // Client-side crisis check — show resources immediately
+      if (detectCrisisLocal(text)) {
+        addMessage(getCrisisHTML(), 'crisis');
+      }
+
+      setInputEnabled(false);
+      showTyping();
+
+      try {
+        const data = await sendMessageAPI(sessionId, text);
+        hideTyping();
+
+        // Show crisis resources from server-side detection if not already shown
+        if (data.crisisDetected && data.crisisResources && !detectCrisisLocal(text)) {
+          addMessage(getCrisisHTML(), 'crisis');
+        }
+
+        addMessage(data.reply, 'bot', data.emotion);
+      } catch (err) {
+        hideTyping();
+        addMessage(`Connection error: ${err.message}`, 'system');
+      }
+
+      setInputEnabled(true);
+      userInput.focus();
+    }
+
+    // ============================
+    //  START SESSION
+    // ============================
+    btnStart.addEventListener('click', async () => {
+      hideError();
+      const userName = nameInput.value.trim() || 'Anonymous';
+      const preferredLanguage = langSelect.value;
+
+      btnStart.disabled = true;
+      btnStart.textContent = 'Connecting...';
+
+      try {
+        const data = await createSession(userName, preferredLanguage);
+        sessionId = data.sessionId;
+
+        // Save preferences
+        localStorage.setItem('mb_userName', userName);
+        localStorage.setItem('mb_lang', preferredLanguage);
+
+        // Switch to chat
+        setupScreen.style.display = 'none';
+        chatContainer.classList.add('active');
+
+        addMessage(data.greeting, 'bot');
+        setInputEnabled(true);
+        userInput.focus();
+      } catch (err) {
+        showError(err.message);
+      }
+
+      btnStart.disabled = false;
+      btnStart.textContent = 'Begin Conversation';
+    });
+
+    // ============================
+    //  SEND BUTTON & ENTER KEY
+    // ============================
+    btnSend.addEventListener('click', sendMessage);
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    // ============================
+    //  NEW CHAT
+    // ============================
+    btnNewChat.addEventListener('click', async () => {
+      if (sessionId) {
+        if (!confirm('Start a new conversation? Current chat will be cleared.')) return;
+      }
+
+      chatMessages.innerHTML = '';
+      setInputEnabled(false);
+      showTyping();
+
+      const userName = localStorage.getItem('mb_userName') || 'Anonymous';
+      const lang = localStorage.getItem('mb_lang') || 'auto';
+
+      try {
+        const data = await createSession(userName, lang);
+        sessionId = data.sessionId;
+        hideTyping();
+        addMessage(data.greeting, 'bot');
+        setInputEnabled(true);
+        userInput.focus();
+      } catch (err) {
+        hideTyping();
+        addMessage(`Connection error: ${err.message}`, 'system');
+        setInputEnabled(true);
+      }
+    });
+
+    // ============================
+    //  SETTINGS
+    // ============================
+    btnSettings.addEventListener('click', () => {
+      chatContainer.classList.remove('active');
+      setupScreen.style.display = 'flex';
+      nameInput.value = localStorage.getItem('mb_userName') || '';
+      langSelect.value = localStorage.getItem('mb_lang') || 'auto';
+    });
+
+    // ============================
+    //  INIT
+    // ============================
+    (function init() {
+      const savedName = localStorage.getItem('mb_userName');
+      const savedLang = localStorage.getItem('mb_lang');
+      if (savedName) nameInput.value = savedName;
+      if (savedLang) langSelect.value = savedLang;
+    })();
+  </script>
+</body>
+</html>
