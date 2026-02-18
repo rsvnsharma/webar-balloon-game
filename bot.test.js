@@ -202,3 +202,96 @@ describe("API surface", () => {
     expect(bot.conversationHistory).toHaveLength(2);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Clickable resource links — html field
+// ---------------------------------------------------------------------------
+
+describe("Clickable resource links (html field)", () => {
+  describe("Explicit crisis response", () => {
+    test("html field is present on crisis response", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I want to kill myself.");
+      expect(html).toBeDefined();
+    });
+
+    test("html field contains a clickable tel: link for 988", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I want to kill myself.");
+      expect(html).toContain('href="tel:988"');
+    });
+
+    test("html field contains a clickable sms: link for Crisis Text Line", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I want to kill myself.");
+      expect(html).toContain('href="sms:741741"');
+    });
+
+    test("html field contains a clickable https: link for findahelpline.com", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I want to kill myself.");
+      expect(html).toContain('href="https://findahelpline.com"');
+    });
+
+    test("findahelpline link opens in a new tab (target=_blank)", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I want to kill myself.");
+      expect(html).toContain('target="_blank"');
+    });
+
+    test("all links include rel=noopener for security", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I want to kill myself.");
+      const linkCount = (html.match(/<a /g) || []).length;
+      const safeCount = (html.match(/rel="noopener noreferrer"/g) || []).length;
+      expect(safeCount).toBe(linkCount);
+    });
+
+    test("plain text field still contains 988 for non-browser contexts", () => {
+      const bot = freshBot();
+      const { text } = bot.buildResponse("I want to kill myself.");
+      expect(text).toContain("988");
+      expect(text).not.toContain("<a ");
+    });
+  });
+
+  describe("Safety-check response (stage 3 escalation)", () => {
+    test("html field is present on safety_check response", () => {
+      const bot = freshBot();
+      bot.buildResponse("I feel like giving up.");
+      bot.buildResponse("I'm so done with this.");
+      const { html } = bot.buildResponse("Nothing is worth it.");
+      expect(html).toBeDefined();
+    });
+
+    test("safety_check html field contains clickable links", () => {
+      const bot = freshBot();
+      bot.buildResponse("I feel like giving up.");
+      bot.buildResponse("I'm so done with this.");
+      const { html } = bot.buildResponse("Nothing is worth it.");
+      expect(html).toContain('href="tel:988"');
+      expect(html).toContain('href="sms:741741"');
+      expect(html).toContain('href="https://findahelpline.com"');
+    });
+  });
+
+  describe("Non-crisis responses", () => {
+    test("empathy response has no html field", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I feel like giving up.");
+      expect(html).toBeUndefined();
+    });
+
+    test("coping_offer response has no html field", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I don't know.");
+      expect(html).toBeUndefined();
+    });
+
+    test("engaged response has no html field", () => {
+      const bot = freshBot();
+      const { html } = bot.buildResponse("I've been feeling a bit off lately.");
+      expect(html).toBeUndefined();
+    });
+  });
+});

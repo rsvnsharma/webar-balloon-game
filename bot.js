@@ -108,11 +108,25 @@ const COPING_STRATEGIES = [
 // Crisis resources
 // ---------------------------------------------------------------------------
 
+/** Plain-text version — used in the `text` field and in Node/test environments. */
 const CRISIS_RESOURCES =
   "If you're in crisis, please reach out:\n" +
   "• National Suicide Prevention Lifeline: 988 (call or text)\n" +
   "• Crisis Text Line: Text HOME to 741741\n" +
   "• International resources: findahelpline.com";
+
+/**
+ * HTML version — used in the `html` field for browser rendering.
+ * Links use tel: / sms: / https: schemes so users can tap/click directly.
+ */
+const CRISIS_RESOURCES_HTML =
+  "If you're in crisis, please reach out:<br>" +
+  '• National Suicide Prevention Lifeline: ' +
+    '<a href="tel:988" rel="noopener noreferrer">988</a> (call or text)<br>' +
+  '• Crisis Text Line: Text HOME to ' +
+    '<a href="sms:741741" rel="noopener noreferrer">741741</a><br>' +
+  '• International resources: ' +
+    '<a href="https://findahelpline.com" target="_blank" rel="noopener noreferrer">findahelpline.com</a>';
 
 // ---------------------------------------------------------------------------
 // Response modes
@@ -211,10 +225,11 @@ class EmotionalSupportBot {
     if (crisisLevel === "explicit") {
       // Unambiguous signal → immediate, compassionate safety check + resources
       this.distressTurnCount = 0;
+      const explicitPreamble =
+        "I hear you, and I'm really glad you're talking to me. What you're feeling right now matters, and you don't have to face this alone.";
       return {
-        text:
-          "I hear you, and I'm really glad you're talking to me. What you're feeling right now matters, and you don't have to face this alone.\n\n" +
-          CRISIS_RESOURCES,
+        text: explicitPreamble + "\n\n" + CRISIS_RESOURCES,
+        html: explicitPreamble + "<br><br>" + CRISIS_RESOURCES_HTML,
         mode: "crisis",
       };
     }
@@ -243,11 +258,13 @@ class EmotionalSupportBot {
       if (this.distressTurnCount >= 3) {
         // Stage 3 — Explicit but compassionate safety check.
         // Only reached after distress has persisted across multiple turns.
+        const safetyPreamble =
+          "I've noticed you've been carrying some really heavy feelings over the past few messages. I want to ask directly — are you having any thoughts of hurting yourself? There's no wrong answer, and I'm not going anywhere.\n\nIf you are, please know support is here:\n";
+        const safetyPreambleHtml =
+          "I've noticed you've been carrying some really heavy feelings over the past few messages. I want to ask directly — are you having any thoughts of hurting yourself? There's no wrong answer, and I'm not going anywhere.<br><br>If you are, please know support is here:<br>";
         return {
-          text:
-            "I've noticed you've been carrying some really heavy feelings over the past few messages. I want to ask directly — are you having any thoughts of hurting yourself? There's no wrong answer, and I'm not going anywhere.\n\n" +
-            "If you are, please know support is here:\n" +
-            CRISIS_RESOURCES,
+          text: safetyPreamble + CRISIS_RESOURCES,
+          html: safetyPreambleHtml + CRISIS_RESOURCES_HTML,
           mode: "safety_check",
         };
       }
@@ -300,7 +317,8 @@ class EmotionalSupportBot {
 // ---------------------------------------------------------------------------
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { EmotionalSupportBot, CRISIS_RESOURCES };
+  module.exports = { EmotionalSupportBot, CRISIS_RESOURCES, CRISIS_RESOURCES_HTML };
 } else {
   window.EmotionalSupportBot = EmotionalSupportBot;
+  window.CRISIS_RESOURCES_HTML = CRISIS_RESOURCES_HTML;
 }
