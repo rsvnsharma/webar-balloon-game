@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const Session = require('../models/Session');
 const { buildSystemPrompt } = require('../config/systemPrompt');
 const { detectCrisis, getCrisisResourcesText } = require('../config/crisisDetector');
+const { checkScope } = require('../config/scopeGuard');
 
 const router = express.Router();
 
@@ -116,6 +117,37 @@ router.post('/message', async (req, res) => {
       crisisDetected: isCrisis,
       timestamp: new Date()
     });
+
+    // --- Scope guard: block off-topic messages before they reach the main LLM ---
+    if (!isCrisis) {
+      const openai = getOpenAIClient();
+      const scopeResult = await checkScope(openai, message);
+
+      if (!scopeResult.allowed) {
+        const redirect = scopeResult.redirect;
+
+        session.messages.push({
+          role: 'assistant',
+          content: redirect,
+          detectedEmotion: 'neutral',
+          timestamp: new Date()
+        });
+
+        session.metadata.lastActiveAt = new Date();
+        session.metadata.totalMessages = session.messages.length;
+        await session.save();
+
+        return res.json({
+          reply: redirect,
+          emotion: 'neutral',
+          intensity: 'low',
+          copingSuggested: null,
+          crisisDetected: false,
+          crisisResources: null,
+          scopeBlocked: true
+        });
+      }
+    }
 
     // Build conversation history for the LLM (last 30 message pairs to stay within context)
     const systemPrompt = buildSystemPrompt({
